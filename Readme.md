@@ -2,7 +2,8 @@
 
 This repository is forked from **[Data Driven HPC](https://github.com/datadrivenhpc/docker-slurmbase)** 
 that provides a set of containers that can be used to run a SLURM HPC cluster as a set of Docker
-containers. The project consists of three components:
+containers. This version is configured with Nextflow to run **[sra2gev-slurm](https://github.com/cbmckni/sra2gev-slurm)**
+The project consists of three components:
 
 1. [docker-slurmctld](https://github.com/GRomR1/docker-slurmctld) provide
 a SLURM controller or "head node".
@@ -13,18 +14,16 @@ SLURM compute node.
 3. [docker-slurmbase](https://github.com/GRomR1/docker-slurmbase) is the
 base container from which both docker-slurmctld and docker-slurmd inherit.
 
-In the repository was added [influxdb-plugin](https://github.com/GRomR1/influxdb-slurm-monitoring) 
-that gather accounting data about tasks and store it in an external database ([InfluxDB](https://docs.influxdata.com/influxdb)). 
-
 This repository contains the container source files. The ready built container
 images are available via DockerHub: [https://hub.docker.com/r/gromr1](https://hub.docker.com/r/gromr1).
 
 The Docker SLURM cluster is configured with the following software packages:
 
 - Ubuntu 16.04 LTS
-- SLURM 16.05.9
+- SLURM 17.11.2
 - GlusterFS 3.8
 - Open MPI 1.10.2
+- Nextflow
 
 A user `ddhpc` is configured across all nodes for MPI job execution and a shared
 GlusterFS volume *ddhpc* is mounted on all nodes as `/data/ddhpc`. The head node
@@ -38,39 +37,39 @@ Create a new directory with a `docker-compose.yml` file:
 version: '2'
 
 services:
-  slurmctld:
-    container_name: slurmctld
+  slurmflowctld:
+    container_name: slurmflowctld
     environment:
       SLURM_CLUSTER_NAME: ddhpc
-      SLURM_CONTROL_MACHINE: slurmctld
-      SLURM_NODE_NAMES: slurmd
+      SLURM_CONTROL_MACHINE: slurmflowctld
+      SLURM_NODE_NAMES: slurmflowd
       INFLUXDB_HOST: influxdb
       INFLUXDB_DATABASE_NAME: docker_slurm
     tty: true
-    hostname: slurmctld
+    hostname: slurmflowctld
     networks:
       default:
         aliases:
-          - slurmctld
-    image: gromr1/slurmctld
+          - slurmflowctld
+    image: cbmckni/slurmflowctld
     stdin_open: true
-  slurmd:
-    container_name: slurmd
+  slurmflowd:
+    container_name: slurmflowd
     environment:
-      SLURM_CONTROL_MACHINE: slurmctld
+      SLURM_CONTROL_MACHINE: slurmflowctld
       SLURM_CLUSTER_NAME: ddhpc
-      SLURM_NODE_NAMES: slurmd
+      SLURM_NODE_NAMES: slurmflowd
       INFLUXDB_HOST: influxdb
       INFLUXDB_DATABASE_NAME: docker_slurm
     tty: true
-    hostname: slurmd
+    hostname: slurmflowd
     networks:
       default:
         aliases:
-          - slurmd
-    image: gromr1/slurmd
+          - slurmflowd
+    image: cbmckni/slurmflowd
     depends_on:
-      - slurmctld
+      - slurmflowctld
     stdin_open: true
 ```
 
